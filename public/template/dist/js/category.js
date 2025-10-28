@@ -1,0 +1,238 @@
+// ==========================
+// Configurar CSRF para Axios
+// ==========================
+axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+// ==========================
+// Cargar datos de la categoría
+// ==========================
+let pendingFiles = []; // 🔥 Acumula todas las imágenes nuevas seleccionadas
+
+if (document.getElementById('code_category')) {
+    function datacategory() {
+        let codigo = document.getElementById('code_category').value;
+
+        axios.get("/datacategory/" + codigo).then(response => {
+            const data = response.data;
+            document.getElementById("name").value = data.name;
+            document.getElementById("code").value = data.code;
+            document.getElementById("is_active").checked = data.is_active == 1;
+
+            const container = document.getElementById("sortable-images");
+            container.innerHTML = "";
+
+            if (data.images && data.images.length > 0) {
+                data.images.forEach((img, index) => {
+                    const col = document.createElement("div");
+                    col.className = "col-sm-3 text-center mb-3 image-item";
+                    col.dataset.id = img.id;
+
+                    col.innerHTML = `
+                        <div class="card p-2">
+                            <div class="position-relative">
+                                <img src="${img.path}" class="img-fluid img-thumbnail mb-2" style="max-height:150px;">
+                                <span class="badge ${index === 0 ? 'badge-success' : 'badge-secondary'} position-absolute" style="top:5px; left:5px;">
+                                    ${index === 0 ? 'PRINCIPAL' : 'SECUNDARIA'}
+                                </span>
+                            </div>
+                            <button type="button" class="btn btn-danger btn-sm mt-2 delete-image" data-id="${img.id}">
+                                <i class="fa fa-trash"></i> Eliminar
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(col);
+                });
+
+                initSortable();
+                initDeleteEvents();
+                updateBadges();
+            }
+        });
+    }
+
+    datacategory();
+}
+
+// ==========================
+// Inicializar SortableJS
+// ==========================
+function initSortable() {
+    if (typeof Sortable !== "undefined") {
+        Sortable.create(document.getElementById("sortable-images"), {
+            animation: 150,
+            handle: 'img',
+            ghostClass: 'bg-light',
+            onEnd: updateBadges
+        });
+    }
+}
+
+// ==========================
+// Actualizar etiquetas PRINCIPAL/SECUNDARIA
+// ==========================
+function updateBadges() {
+    const items = document.querySelectorAll("#sortable-images .image-item");
+    items.forEach((item, index) => {
+        const badge = item.querySelector(".badge");
+        if (badge) {
+            badge.className = "badge position-absolute";
+            badge.classList.add(index === 0 ? "badge-success" : "badge-secondary");
+            badge.textContent = index === 0 ? "PRINCIPAL" : "SECUNDARIA";
+            badge.style.top = "5px";
+            badge.style.left = "5px";
+        }
+    });
+}
+
+// ==========================
+// Eventos de eliminación
+// ==========================
+function initDeleteEvents() {
+    document.querySelectorAll(".delete-image").forEach(btn => {
+        btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            const id = this.getAttribute("data-id");
+            Swal.fire({
+                text: "¿Seguro que quieres eliminar esta imagen?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Sí, eliminar",
+                cancelButtonText: "Cancelar"
+            }).then(result => {
+                if (result.isConfirmed) {
+                    axios.delete(`/category/image/${id}`)
+                        .then(res => {
+                            if (res.data.success) {
+                                Swal.fire({ icon: "success", text: "Imagen eliminada" });
+                                datacategory();
+                            }
+                        })
+                        .catch(err => {
+                            Swal.fire({ icon: "error", text: "Error al eliminar la imagen" });
+                            console.error(err);
+                        });
+                }
+            });
+        });
+    });
+}
+
+// ==========================
+// Vista previa imágenes NUEVAS (acumulando todas)
+// ==========================
+document.getElementById("images").addEventListener("change", function (e) {
+    const container = document.getElementById("sortable-images");
+    const files = Array.from(e.target.files);
+
+    files.forEach(file => {
+        pendingFiles.push(file); // 👈 ahora acumulamos todas las selecciones
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const col = document.createElement("div");
+            col.className = "col-sm-3 text-center mb-3 image-item";
+            col.dataset.id = `new_${pendingFiles.length - 1}`;
+
+            col.innerHTML = `
+                <div class="card p-2">
+                    <div class="position-relative">
+                        <img src="${event.target.result}" class="img-fluid img-thumbnail mb-2" style="max-height:150px;">
+                        <span class="badge badge-secondary position-absolute" style="top:5px; left:5px;">SECUNDARIA</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(col);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    e.target.value = ""; // 🔥 resetea el input para poder elegir más imágenes después
+    setTimeout(updateBadges, 200);
+});
+
+// ==========================
+// Guardar cambios
+// ==========================
+function category_update(e) {
+    e.preventDefault();
+
+    Swal.fire({
+        text: "Desea actualizar el registro?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí",
+        cancelButtonText: "No"
+    }).then(result => {
+        if (result.isConfirmed) {
+            // 🔥 Mostrar estado de cargando en el botón
+            const btn = document.getElementById("btn-save");
+            const btnText = btn.querySelector(".btn-text");
+            const btnSpinner = btn.querySelector(".btn-spinner");
+            btn.disabled = true;
+            btnText.textContent = "Guardando cambios...";
+            btnSpinner.style.display = "inline-block";
+
+            let codigo_antiguo = document.getElementById('code_category').value;
+            let nombre = document.getElementById("name").value;
+            let codigo = document.getElementById("code").value;
+            let is_active = document.getElementById("is_active").checked ? 1 : 0;
+
+            let datos = new FormData();
+            datos.append("codigo_antiguo", codigo_antiguo);
+            datos.append("name", nombre);
+            datos.append("code", codigo);
+            datos.append("is_active", is_active);
+
+            // 🔥 Orden de imágenes (primera = principal)
+            document.querySelectorAll('#sortable-images .image-item').forEach((el, index) => {
+                datos.append(`order[${el.dataset.id}]`, index);
+            });
+
+            // ✅ Nuevas imágenes acumuladas
+            pendingFiles.forEach(file => {
+                datos.append("images[]", file);
+            });
+
+            axios.post('/updatecategory/' + codigo_antiguo, datos)
+                .then(response => {
+                    if (response.data === 1) {
+                        Swal.fire({
+                            text: "Los datos se actualizaron correctamente!",
+                            icon: "success"
+                        }).then(() => {
+                            location.href = "/category/edit/" + codigo;
+                        });
+                        pendingFiles = []; // ✅ limpiamos después de guardar
+                    } else {
+                        Swal.fire({ text: "No se realizó la actualización correctamente!", icon: "error" });
+                    }
+                    document.getElementById('code_category').value = codigo;
+                    datacategory();
+                })
+                .catch(error => {
+                    Swal.fire({ text: "Hubo un error al actualizar la categoría", icon: "error" });
+                    console.error(error);
+                })
+                .finally(() => {
+                    // 🔄 Restaurar botón
+                    btn.disabled = false;
+                    btnText.innerHTML = "Guardar Cambios";
+                    btnSpinner.style.display = "none";
+                });
+        }
+    });
+}
+
+
+// ==========================
+// Slug automático
+// ==========================
+function slug() {
+    let str = document.getElementById("name").value.trim().toLowerCase();
+    var from = "ÁÄÂÀÃÅČÇĆĎÉĚËÈÊẼĔȆÍÌÎÏŇÑÓÖÒÔÕØŘŔŠŤÚŮÜÙÛÝŸŽáäâàãåčçćďéěëèêẽĕȇíìîïňñóöòôõøðřŕšťúůüùûýÿžþÞĐđßÆa·/_,:;";
+    var to =   "AAAAAACCCDEEEEEEEEIIIINNOOOOOORRSTUUUUUYYZaaaaaacccdeeeeeeeeiiiinnooooooorrstuuuuuyyzbBDdBAa------";
+    for (var i = 0, l = from.length; i < l; i++) {
+        str = str.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
+    }
+    str = str.replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+    document.getElementById("code").value = str;
+}
