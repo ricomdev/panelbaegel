@@ -301,6 +301,15 @@
                     </li>
                     
                     <li class="nav-item">
+                        <a href="{{route('bloqueo-turnos.index')}}" class="nav-link">
+                            <i class="nav-icon fas fa-calendar"></i>
+                            <p>
+                                Turnos bloqueados
+                            </p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
                         <a href="{{route('sales.index')}}" class="nav-link">
                             <i class="nav-icon fas fa-dollar-sign"></i>
                             <p>

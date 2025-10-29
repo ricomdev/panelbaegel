@@ -32,6 +32,7 @@ use App\Http\Controllers\OnlyuserController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\MailingController;
+use App\Http\Controllers\BloqueoTurnosController;
 
 Route::middleware('auth')->get('/', [IndexAdminController::class, 'index'])->name('panel.index');
 
@@ -209,6 +210,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/mailing-settings', [MailingController::class, 'mailingHeaderImage'])->name('mailing.header_image');
     Route::post('/mailing-settings/update', [MailingController::class, 'updateMAilingHeaderImage'])->name('mailing.header_image.update');
+
+
+    Route::get('/bloqueo-turnos', [BloqueoTurnosController::class, 'index'])->name('bloqueo-turnos.index');
+    Route::post('/bloqueo-turnos/guardar', [BloqueoTurnosController::class, 'guardar'])->name('bloqueo-turnos.guardar');
+    Route::get('/bloqueo-turnos/listar', [BloqueoTurnosController::class, 'listar'])->name('bloqueo-turnos.listar');
+    Route::delete('/bloqueo-turnos/eliminar/{id}', [BloqueoTurnosController::class, 'eliminar'])->name('bloqueo-turnos.eliminar');
+    
 });
 
 
