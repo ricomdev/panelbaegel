@@ -33,6 +33,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\MailingController;
 use App\Http\Controllers\BloqueoTurnosController;
+use App\Http\Controllers\PrivacyPolicyController;
 
 Route::middleware('auth')->get('/', [IndexAdminController::class, 'index'])->name('panel.index');
 
@@ -182,6 +183,22 @@ Route::middleware('auth')->group(function () {
         Route::put('/questions/{id}', [FaqController::class, 'updateFaq']);
         Route::delete('/questions/{id}', [FaqController::class, 'destroyFaq']);
     });
+
+    // Panel de administración de Políticas de Privacidad
+    Route::prefix('privacy-policies')->group(function () {
+        Route::get('/', [PrivacyPolicyController::class, 'index'])->name('privacy.index');
+
+        // Texto general
+        Route::post('/general/store', [PrivacyPolicyController::class, 'storeGeneral']);
+        Route::put('/general/{id}', [PrivacyPolicyController::class, 'updateGeneral']);
+
+        // Secciones de políticas
+        Route::post('/store', [PrivacyPolicyController::class, 'storePolicy']);
+        Route::put('/{id}', [PrivacyPolicyController::class, 'updatePolicy']);
+        Route::delete('/{id}', [PrivacyPolicyController::class, 'destroyPolicy']);
+    });
+
+
 
     // Vista principal del panel de Catering
     Route::get('/catering', [CateringController::class, 'index'])->name('catering.index');

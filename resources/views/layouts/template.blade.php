@@ -84,13 +84,7 @@
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Footer</p>
                                 </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{route('faqs.index')}}" class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Faq's</p>
-                                </a>
-                            </li>             
+                            </li>       
                             <li class="nav-item">
                                 <a href="{{route('catering.index')}}" class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
@@ -109,6 +103,18 @@
                                     <p>Mailing</p>
                                 </a>
                             </li>   
+                            <li class="nav-item">
+                                <a href="{{route('faqs.index')}}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Faq's</p>
+                                </a>
+                            </li>        
+                            <li class="nav-item">
+                                <a href="{{route('privacy.index')}}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Politicas de Privacidad</p>
+                                </a>
+                            </li>  
                         </ul>
                     </li>
 
