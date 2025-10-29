@@ -34,6 +34,7 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\MailingController;
 use App\Http\Controllers\BloqueoTurnosController;
 use App\Http\Controllers\PrivacyPolicyController;
+use App\Http\Controllers\TermsConditionsController;
 
 Route::middleware('auth')->get('/', [IndexAdminController::class, 'index'])->name('panel.index');
 
@@ -196,6 +197,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/store', [PrivacyPolicyController::class, 'storePolicy']);
         Route::put('/{id}', [PrivacyPolicyController::class, 'updatePolicy']);
         Route::delete('/{id}', [PrivacyPolicyController::class, 'destroyPolicy']);
+    });
+
+    // Panel de administración de Términos y Condiciones
+    Route::prefix('terms-conditions')->group(function () {
+        Route::get('/', [TermsConditionsController::class, 'index'])->name('terms.index');
+
+        // Texto general
+        Route::post('/general/store', [TermsConditionsController::class, 'storeGeneral']);
+        Route::put('/general/{id}', [TermsConditionsController::class, 'updateGeneral']);
+
+        // Secciones de términos
+        Route::post('/store', [TermsConditionsController::class, 'storeTerm']);
+        Route::put('/{id}', [TermsConditionsController::class, 'updateTerm']);
+        Route::delete('/{id}', [TermsConditionsController::class, 'destroyTerm']);
     });
 
 

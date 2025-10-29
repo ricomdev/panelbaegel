@@ -115,6 +115,12 @@
                                     <p>Politicas de Privacidad</p>
                                 </a>
                             </li>  
+                            <li class="nav-item">
+                                <a href="{{route('terms.index')}}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Términos y Condiciones</p>
+                                </a>
+                            </li>                              
                         </ul>
                     </li>
 
