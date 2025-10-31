@@ -6,7 +6,7 @@ axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[nam
 // ==========================
 // Cargar datos del producto UNIT
 // ==========================
-let pendingFiles = []; // 🔥 Acumula todas las imágenes nuevas seleccionadas
+let pendingFiles = [];
 
 if (document.getElementById('code_product')) {
     function dataproduct() {
@@ -126,12 +126,12 @@ function initDeleteEvents() {
                     axios.delete(`/product/unit/image/${id}`)
                         .then(res => {
                             if (res.data.success) {
-                                Swal.fire({ icon: "success", text: "Imagen eliminada" });
+                                Swal.fire({ icon: "success", text: "Imagen eliminada correctamente." });
                                 dataproduct();
                             }
                         })
                         .catch(err => {
-                            Swal.fire({ icon: "error", text: "Error al eliminar la imagen" });
+                            Swal.fire({ icon: "error", text: "Error al eliminar la imagen." });
                             console.error(err);
                         });
                 }
@@ -141,7 +141,7 @@ function initDeleteEvents() {
 }
 
 // ==========================
-// Vista previa imágenes NUEVAS (acumulando todas)
+// Vista previa imágenes NUEVAS
 // ==========================
 document.getElementById("images").addEventListener("change", function (e) {
     const container = document.getElementById("sortable-images");
@@ -169,113 +169,205 @@ document.getElementById("images").addEventListener("change", function (e) {
         reader.readAsDataURL(file);
     });
 
-    e.target.value = ""; // 🔥 permite seguir agregando más imágenes
+    e.target.value = "";
     setTimeout(updateBadges, 200);
 });
 
 // ==========================
-// Guardar cambios
+// VALIDAR CAMPOS (crear / editar)
 // ==========================
-function product_update(e) {
+function validateFields() {
+    const subcategory_id = document.getElementById("subcategory_id").value;
+    const name = document.getElementById("name").value.trim();
+    const short_name = document.getElementById("short_name").value.trim();
+    const code = document.getElementById("code").value.trim();
+    const price = document.getElementById("price").value;
+    const stock = document.getElementById("stock").value;
+
+    if (!subcategory_id) {
+        Swal.fire({ icon: "warning", text: "Debe seleccionar una subcategoría." });
+        return false;
+    }
+    if (!name) {
+        Swal.fire({ icon: "warning", text: "Debe ingresar el nombre completo del producto." });
+        return false;
+    }
+    if (!short_name) {
+        Swal.fire({ icon: "warning", text: "Debe ingresar el nombre corto del producto." });
+        return false;
+    }
+    if (!code) {
+        Swal.fire({ icon: "warning", text: "Debe ingresar el código del producto." });
+        return false;
+    }
+    if (price === "" || isNaN(price)) {
+        Swal.fire({ icon: "warning", text: "Debe ingresar un precio válido." });
+        return false;
+    }
+    if (stock === "" || isNaN(stock)) {
+        Swal.fire({ icon: "warning", text: "Debe ingresar un valor de stock válido." });
+        return false;
+    }
+
+    return true;
+}
+
+// ==========================
+// GUARDAR CAMBIOS (EDITAR)
+// ==========================
+async function product_update(e) {
     e.preventDefault();
 
-    // ⚡ Validar que exista al menos una imagen
+    if (!validateFields()) return;
+
+    const nuevoCodigo = document.getElementById("code").value.trim();
+    const codigoAntiguo = document.getElementById("code_product").value.trim();
+
+    if (nuevoCodigo && nuevoCodigo !== codigoAntiguo) {
+        try {
+            const res = await axios.get(`/product/unit/check-code/${nuevoCodigo}`);
+            if (res.data.exists) {
+                Swal.fire({ icon: "warning", text: "El nuevo código ya existe en otro producto." });
+                return;
+            }
+        } catch (err) { console.error(err); }
+    }
+
     const existingImages = document.querySelectorAll('#sortable-images .image-item').length;
     const newImages = pendingFiles.length;
-
     if (existingImages + newImages === 0) {
-        Swal.fire({
-            icon: 'warning',
-            text: 'Debes subir al menos una imagen antes de actualizar el producto.'
-        });
+        Swal.fire({ icon: 'warning', text: 'Debe subir al menos una imagen antes de actualizar el producto.' });
         return;
     }
 
     Swal.fire({
-        text: "Desea actualizar el registro?",
+        text: "¿Desea actualizar el registro?",
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: "Sí",
         cancelButtonText: "No"
     }).then(result => {
-        if (result.isConfirmed) {
-            // 🔥 Mostrar estado de cargando en el botón
-            const btn = document.getElementById("btn-save");
-            const btnText = btn.querySelector(".btn-text");
-            const btnSpinner = btn.querySelector(".btn-spinner");
-            btn.disabled = true;
-            btnText.textContent = "Guardando cambios...";
-            btnSpinner.style.display = "inline-block";
+        if (!result.isConfirmed) return;
 
-            const codigo_antiguo = document.getElementById('code_product').value;
+        const btn = document.getElementById("btn-save");
+        const btnText = btn.querySelector(".btn-text");
+        const btnSpinner = btn.querySelector(".btn-spinner");
+        btn.disabled = true;
+        btnText.textContent = "Guardando cambios...";
+        btnSpinner.style.display = "inline-block";
 
-            let datos = new FormData();
-            datos.append("codigo_antiguo", codigo_antiguo);
-            datos.append("subcategory_id", document.getElementById("subcategory_id").value);
-            datos.append("type", document.getElementById("type").value);
-            datos.append("code", document.getElementById("code").value);
-            datos.append("short_name", document.getElementById("short_name").value);
-            datos.append("name", document.getElementById("name").value);
-            datos.append("content", document.getElementById("content").value);
-            datos.append("description", document.getElementById("description").value);
-            datos.append("description_002", document.getElementById("description_002").value);
-            datos.append("price", document.getElementById("price").value);
-            datos.append("stock", document.getElementById("stock").value);
-            datos.append("is_active", document.getElementById("is_active").checked ? 1 : 0);
-            datos.append("qty_bagel", document.getElementById("qty_bagel").value);
-            datos.append("qty_spreads", document.getElementById("qty_spreads").value);
+        const datos = new FormData();
+        datos.append("codigo_antiguo", codigoAntiguo);
+        datos.append("subcategory_id", document.getElementById("subcategory_id").value);
+        datos.append("type", document.getElementById("type").value);
+        datos.append("code", nuevoCodigo);
+        datos.append("short_name", document.getElementById("short_name").value);
+        datos.append("name", document.getElementById("name").value);
+        datos.append("content", document.getElementById("content").value);
+        datos.append("description", document.getElementById("description").value);
+        datos.append("description_002", document.getElementById("description_002").value);
+        datos.append("price", document.getElementById("price").value);
+        datos.append("stock", document.getElementById("stock").value);
+        datos.append("is_active", document.getElementById("is_active").checked ? 1 : 0);
+        datos.append("qty_bagel", document.getElementById("qty_bagel").value);
+        datos.append("qty_spreads", document.getElementById("qty_spreads").value);
 
-            // 🔥 Orden de imágenes
-            document.querySelectorAll('#sortable-images .image-item').forEach((el, index) => {
-                datos.append(`order[${el.dataset.id}]`, index);
+        document.querySelectorAll('#sortable-images .image-item').forEach((el, index) => {
+            datos.append(`order[${el.dataset.id}]`, index);
+        });
+
+        pendingFiles.forEach(file => datos.append("images[]", file));
+
+        axios.post('/updateproduct/unit/' + codigoAntiguo, datos)
+            .then(response => {
+                if (response.data === 1) {
+                    Swal.fire({ icon: "success", text: "Producto actualizado correctamente." })
+                        .then(() => location.href = "/product/unit/edit/" + nuevoCodigo);
+                    pendingFiles = [];
+                } else {
+                    Swal.fire({ icon: "error", text: "No se realizó la actualización correctamente." });
+                }
+            })
+            .catch(() => Swal.fire({ icon: "error", text: "Hubo un error al actualizar el producto." }))
+            .finally(() => {
+                btn.disabled = false;
+                btnText.innerHTML = "Guardar Cambios";
+                btnSpinner.style.display = "none";
             });
-
-            // ✅ Nuevas imágenes
-            pendingFiles.forEach(file => {
-                datos.append("images[]", file);
-            });
-
-            axios.post('/updateproduct/unit/' + codigo_antiguo, datos)
-                .then(response => {
-                    if (response.data === 1) {
-                        Swal.fire({
-                            text: "Los datos se actualizaron correctamente!",
-                            icon: "success"
-                        }).then(() => {
-                            location.href = "/product/unit/edit/" + document.getElementById("code").value;
-                        });
-                        pendingFiles = [];
-                    } else {
-                        Swal.fire({ text: "No se realizó la actualización correctamente!", icon: "error" });
-                    }
-                    document.getElementById('code_product').value = document.getElementById("code").value;
-                    dataproduct();
-                })
-                .catch(error => {
-                    Swal.fire({ text: "Hubo un error al actualizar el producto", icon: "error" });
-                    console.error(error);
-                })
-                .finally(() => {
-                    // 🔄 Restaurar botón
-                    btn.disabled = false;
-                    btnText.innerHTML = "Guardar Cambios";
-                    btnSpinner.style.display = "none";
-                });
-        }
     });
 }
 
+// ==========================
+// CREAR NUEVO PRODUCTO (STORE)
+// ==========================
+async function product_store(e) {
+    e.preventDefault();
 
-// ==========================
-// Slug automático
-// ==========================
-// function slug() {
-//     let str = document.getElementById("name").value.trim().toLowerCase();
-//     var from = "ÁÄÂÀÃÅČÇĆĎÉĚËÈÊẼĔȆÍÌÎÏŇÑÓÖÒÔÕØŘŔŠŤÚŮÜÙÛÝŸŽáäâàãåčçćďéěëèêẽĕȇíìîïňñóöòôõøðřŕšťúůüùûýÿžþÞĐđßÆa·/_,:;";
-//     var to =   "AAAAAACCCDEEEEEEEEIIIINNOOOOOORRSTUUUUUYYZaaaaaacccdeeeeeeeeiiiinnooooooorrstuuuuuyyzbBDdBAa------";
-//     for (var i = 0, l = from.length; i < l; i++) {
-//         str = str.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
-//     }
-//     str = str.replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
-//     document.getElementById("code").value = str;
-// }
+    if (!validateFields()) return;
+
+    const code = document.getElementById("code").value.trim();
+
+    try {
+        const res = await axios.get(`/product/unit/check-code/${code}`);
+        if (res.data.exists) {
+            Swal.fire({ icon: "warning", text: "El código ingresado ya existe en otro producto. Use uno diferente." });
+            return;
+        }
+    } catch (err) { console.error(err); }
+
+    if (pendingFiles.length === 0) {
+        Swal.fire({ icon: "warning", text: "Debe subir al menos una imagen antes de crear el producto." });
+        return;
+    }
+
+    Swal.fire({
+        text: "¿Desea crear este nuevo producto?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Sí, crear",
+        cancelButtonText: "Cancelar"
+    }).then(result => {
+        if (!result.isConfirmed) return;
+
+        const btn = document.getElementById("btn-save");
+        const btnText = btn.querySelector(".btn-text");
+        const btnSpinner = btn.querySelector(".btn-spinner");
+        btn.disabled = true;
+        btnText.textContent = "Creando...";
+        btnSpinner.style.display = "inline-block";
+
+        const datos = new FormData();
+        datos.append("subcategory_id", document.getElementById("subcategory_id").value);
+        datos.append("type", "unit");
+        datos.append("code", code);
+        datos.append("short_name", document.getElementById("short_name").value);
+        datos.append("name", document.getElementById("name").value);
+        datos.append("content", document.getElementById("content") ? document.getElementById("content").value : "");
+        datos.append("description", document.getElementById("description").value);
+        datos.append("description_002", document.getElementById("description_002").value);
+        datos.append("price", document.getElementById("price").value);
+        datos.append("stock", document.getElementById("stock").value);
+        datos.append("is_active", document.getElementById("is_active").checked ? 1 : 0);
+        datos.append("qty_bagel", document.getElementById("qty_bagel") ? document.getElementById("qty_bagel").value : 0);
+        datos.append("qty_spreads", document.getElementById("qty_spreads") ? document.getElementById("qty_spreads").value : 0);
+
+        pendingFiles.forEach(file => datos.append("images[]", file));
+
+        axios.post('/product/unit/store', datos)
+            .then(response => {
+                if (response.data.success) {
+                    Swal.fire({ icon: "success", text: "Producto creado correctamente." })
+                        .then(() => window.location.href = "/product/unit/edit/" + response.data.code);
+                    pendingFiles = [];
+                } else {
+                    Swal.fire({ icon: "error", text: response.data.message || "No se pudo crear el producto." });
+                }
+            })
+            .catch(() => Swal.fire({ icon: "error", text: "Hubo un error al crear el producto." }))
+            .finally(() => {
+                btn.disabled = false;
+                btnText.innerHTML = '<i class="fa fa-save mr-2"></i> Crear Producto';
+                btnSpinner.style.display = "none";
+            });
+    });
+}

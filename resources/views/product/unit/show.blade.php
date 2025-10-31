@@ -98,7 +98,7 @@
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label>Nombre Info</label>
+                                                <label>Nombre Corto</label>
                                                 <input type="text" class="form-control" id="short_name" maxlength="100">
                                             </div>
                                         </div>

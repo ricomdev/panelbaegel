@@ -57,12 +57,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/updatesubcategory/{code}', [SubcategoryController::class, 'updatesubcategory'])->name('subcategory.updatecategory');
     Route::delete('/subcategory/image/{id}', [SubcategoryController::class, 'deleteImage']);
 
+    // =======================
     // Productos Unitarios
+    // ======================
     Route::get('/products/unit', [ProductController::class, 'indexUnit'])->name('product.unit.index');
+    Route::get('/product/unit/create', [ProductController::class, 'createUnit'])->name('product.unit.create');
+    Route::post('/product/unit/store', [ProductController::class, 'storeUnit'])->name('product.unit.store');
     Route::get('/product/unit/edit/{code}', [ProductController::class, 'showUnit'])->name('product.unit.show');
     Route::get('/dataproduct/unit/{code}', [ProductController::class, 'dataproductUnit'])->name('product.unit.dataproduct');
     Route::post('/updateproduct/unit/{code}', [ProductController::class, 'updateUnit'])->name('product.unit.update');
     Route::delete('/product/unit/image/{id}', [ProductController::class, 'deleteUnitImage'])->name('product.image.delete');
+    Route::get('/product/unit/check-code/{code}', [ProductController::class, 'checkUnitCode'])->name('product.unit.checkcode');
+
 
 
     // =======================

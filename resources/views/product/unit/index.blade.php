@@ -44,8 +44,11 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card card-warning">
-                            <div class="card-header">
-                                <h3 class="card-title">LISTA DE PRODUCTOS UNIT.</h3>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3 class="card-title mb-0">LISTA DE PRODUCTOS UNIT.</h3>
+                                <a href="{{ route('product.unit.create') }}" class="btn btn-success btn-sm text-white font-weight-bold">
+                                    <i class="fas fa-plus mr-1"></i> Nuevo Producto
+                                </a>
                             </div>
                             <div class="card-body p-0">
                                 <table class="table">

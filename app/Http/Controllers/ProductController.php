@@ -170,4 +170,95 @@ class ProductController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function createUnit()
+    {
+        $subcategories = Subcategory::orderBy('name')->get();
+        return view('product.unit.create', compact('subcategories'));
+    }
+
+    /**
+     * 💾 GUARDAR NUEVO PRODUCTO UNITARIO
+     */
+    public function storeUnit(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            // ✅ Validación básica
+            $request->validate([
+                'subcategory_id' => 'required|exists:subcategories,id',
+                'name' => 'required|string|max:255',
+                'price' => 'required|numeric|min:0',
+                'stock' => 'nullable|integer|min:0',
+            ]);
+
+            // ✅ Crear producto
+            $product = Product::create([
+                'subcategory_id' => $request->subcategory_id,
+                'type' => 'unit',
+                'code' => $request->code,
+                'short_name' => $request->short_name,
+                'name' => $request->name,
+                'content' => $request->content,
+                'description' => $request->description,
+                'description_002' => $request->description_002,
+                'price' => $request->price,
+                'stock' => $request->stock ?? 0,
+                'is_active' => $request->is_active ?? 1,
+                'qty_bagel' => $request->qty_bagel ?? 0,
+                'qty_spreads' => $request->qty_spreads ?? 0,
+            ]);
+
+            // ===============================
+            // 🖼️ Guardar imágenes subidas
+            // ===============================
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $index => $file) {
+                    $ext = $file->getClientOriginalExtension();
+                    $name = $product->code . '_' . date('Y_m_d_H_i_s') . '_' . $index . '.' . $ext;
+
+                    $ruta_archivo = public_path('template/images/products/');
+                    $ruta = '/template/images/products/' . $name;
+
+
+                    // Producción
+                    // $webRootPath = config('app.web_root_path');
+                    // $web_link = config('app.web_link');
+                    // $ruta_archivo = $webRootPath . '/imagenes/products/';
+                    // $ruta = $web_link . '/imagenes/products/' . $name;
+
+                    $file->move($ruta_archivo, $name);
+
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'path' => $ruta,
+                        'type' => $index === 0 ? 'principal' : 'secundaria',
+                        'order' => $index,
+                    ]);
+                }
+            }
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'code' => $product->code,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * 🔎 VALIDAR SI CÓDIGO YA EXISTE
+     */
+    public function checkUnitCode($code)
+    {
+        $exists = Product::where('code', $code)->exists();
+        return response()->json(['exists' => $exists]);
+    }
+
 }
