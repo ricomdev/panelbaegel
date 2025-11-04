@@ -70,16 +70,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/product/unit/check-code/{code}', [ProductController::class, 'checkUnitCode'])->name('product.unit.checkcode');
 
 
-
+ 
     // =======================
     // PRODUCTOS BOX-S (box3s y box6s)
     // ======================
     Route::get('/products/boxs', [ProductBoxSController::class, 'index'])->name('product.boxs.index');
+    Route::get('/product/boxs/create', [ProductBoxSController::class, 'create'])->name('product.boxs.create');
+    Route::post('/product/boxs/store', [ProductBoxSController::class, 'store'])->name('product.boxs.store');
     Route::get('/product/boxs/edit/{code}', [ProductBoxSController::class, 'show'])->name('product.boxs.show');
     Route::get('/dataproduct/boxs/{code}', [ProductBoxSController::class, 'dataproduct'])->name('product.boxs.dataproduct');
     Route::post('/updateproduct/boxs/{code}', [ProductBoxSController::class, 'update'])->name('product.boxs.update');
     Route::delete('/product/boxs/image/{id}', [ProductBoxSController::class, 'deleteImage'])->name('product.boxs.deleteimage');
     Route::get('/products/boxs/units-by-subcategory/{subcategory_id}', [ProductBoxSController::class, 'getUnitsBySubcategory'])->name('product.boxs.getunits');
+    Route::get('/product/boxs/check-code/{code}', [ProductBoxSController::class, 'checkCode'])->name('product.boxs.checkcode');
+
 
     // =======================
     // RUTAS PRODUCTOS BOXM

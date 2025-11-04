@@ -207,4 +207,98 @@ class ProductBoxSController extends Controller
 
         return response()->json($units);
     }
+
+    /**
+     * ➕ FORMULARIO DE CREACIÓN BOX-S
+     */
+    public function create()
+    {
+        $subcategories = Subcategory::all();
+        return view('product.boxs.create', compact('subcategories'));
+    }
+
+
+    /**
+     * 💾 GUARDAR NUEVO PRODUCTO BOX-S
+     */
+    public function store(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            // Validar duplicado
+            $exists = Product::where('code', $request->code)->exists();
+            if ($exists) {
+                return response()->json(['success' => false, 'message' => 'El código ya existe']);
+            }
+
+            // Crear producto principal
+            $product = Product::create([
+                'subcategory_id' => $request->subcategory_id,
+                'type' => $request->type,
+                'code' => $request->code,
+                'short_name' => $request->short_name,
+                'name' => $request->name,
+                'description' => $request->description,
+                'description_002' => $request->description_002,
+                'price' => $request->price,
+                'is_active' => $request->is_active ?? 0,
+                'qty_bagel' => $request->qty_bagel,
+                'qty_spreads' => null,
+            ]);
+
+            // Subir imágenes
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $idx => $file) {
+                    $ext = $file->getClientOriginalExtension();
+                    $name = $request->code . '_' . date('Y_m_d_H_i_s') . '_' . $idx . '.' . $ext;
+
+                    // $ruta_archivo = public_path('template/images/products/');
+                    // $ruta = '/template/images/products/' . $name;
+
+                    $webRootPath = config('app.web_root_path');
+                    $web_link = config('app.web_link');
+                    $ruta_archivo = $webRootPath . '/imagenes/products/';
+                    $ruta = $web_link . '/imagenes/products/' . $name;
+
+                    $file->move($ruta_archivo, $name);
+
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'path' => $ruta,
+                        'type' => $idx === 0 ? 'principal' : 'secundaria',
+                        'order' => $idx
+                    ]);
+                }
+            }
+
+            // Guardar productos UNIT asociados
+            if ($request->has('box_items')) {
+                foreach ($request->box_items as $item) {
+                    if (!empty($item['item_prod_id'])) {
+                        ProductBoxItem::create([
+                            'product_id' => $product->id,
+                            'item_prod_id' => $item['item_prod_id'],
+                            'qty_stock' => $item['qty_stock'] ?? 1,
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * 🔍 VERIFICAR SI EL CÓDIGO YA EXISTE
+     */
+    public function checkCode($code)
+    {
+        $exists = Product::where('code', $code)->exists();
+        return response()->json(['exists' => $exists]);
+    }
+
 }

@@ -180,7 +180,7 @@
                             <li class="nav-item">
                                 <a href="{{route('product.unit.create')}}" class="nav-link">
                                     <i class="fas fa-plus nav-icon"></i>
-                                    <p>Crear de Productos Unit.</p>
+                                    <p>Crear Productos Unit.</p>
                                 </a>
                             </li>
                         </ul>
@@ -199,6 +199,14 @@
                                 <a href="{{route('product.boxs.index')}}" class="nav-link">
                                     <i class="fas fa-list nav-icon"></i>
                                     <p>Lista de Box 1 Sabor</p>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{route('product.boxs.create')}}" class="nav-link">
+                                    <i class="fas fa-plus nav-icon"></i>
+                                    <p>Crear Box 1 Sabor</p>
                                 </a>
                             </li>
                         </ul>
