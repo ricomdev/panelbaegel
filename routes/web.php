@@ -99,12 +99,16 @@ Route::middleware('auth')->group(function () {
 
     // =====================
     // RUTAS PRODUCT BRUNCH BOX
-    // =====================
+    // =============================
     Route::get('/products/brunch', [ProductBrunchBoxController::class, 'index'])->name('product.brunch.index');
+    Route::get('/product/brunch/create', [ProductBrunchBoxController::class, 'create'])->name('product.brunch.create');
+    Route::post('/product/brunch/store', [ProductBrunchBoxController::class, 'store'])->name('product.brunch.store');
     Route::get('/product/brunch/edit/{code}', [ProductBrunchBoxController::class, 'show'])->name('product.brunch.show');
     Route::get('/dataproduct/brunch/{code}', [ProductBrunchBoxController::class, 'dataproduct'])->name('product.brunch.dataproduct');
     Route::post('/updateproduct/brunch/{code}', [ProductBrunchBoxController::class, 'update'])->name('product.brunch.update');
     Route::delete('/product/brunch/image/{id}', [ProductBrunchBoxController::class, 'deleteImage'])->name('product.brunch.deleteimage');
+    Route::get('/product/brunch/check-code/{code}', [ProductBrunchBoxController::class, 'checkCode'])->name('product.brunch.checkcode');
+    
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');

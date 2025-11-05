@@ -44,8 +44,11 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card card-warning">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h3 class="card-title">LISTA DE BRUNCH BOX</h3>
+                                <a href="{{ route('product.brunch.create') }}" class="btn btn-success btn-sm text-white font-weight-bold">
+                                    <i class="fas fa-plus mr-1"></i> Nuevo Producto
+                                </a>
                             </div>
                             <div class="card-body p-0">
                                 <table class="table">

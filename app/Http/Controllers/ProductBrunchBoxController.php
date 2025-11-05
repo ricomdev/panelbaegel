@@ -75,15 +75,15 @@ class ProductBrunchBoxController extends Controller
                     $ext = $file->getClientOriginalExtension();
                     $name = $request->code . '_' . date('Y_m_d_H_i_s') . '_' . $idx . '.' . $ext;
 
-                    // $ruta_archivo = public_path('template/images/products/');
-                    // $ruta = '/template/images/products/' . $name;
+                    $ruta_archivo = public_path('template/images/products/');
+                    $ruta = '/template/images/products/' . $name;
 
-                    Producción:
-                    $ruta_archivo = '/home3/baegelpe/public_html/imagenes/products/';
-                    $webRootPath = config('app.web_root_path');
-                    $web_link = config('app.web_link');
-                    $ruta_archivo = $webRootPath.'/imagenes/products/';
-                    $ruta = $web_link.'/imagenes/products/' . $name;
+                    // //Producción:
+                    // //$ruta_archivo = '/home3/baegelpe/public_html/imagenes/products/';
+                    // $webRootPath = config('app.web_root_path');
+                    // $web_link = config('app.web_link');
+                    // $ruta_archivo = $webRootPath.'/imagenes/products/';
+                    // $ruta = $web_link.'/imagenes/products/' . $name;
 
                     $file->move($ruta_archivo, $name);
 
@@ -145,5 +145,77 @@ class ProductBrunchBoxController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    public function create()
+    {
+        $subcategories = Subcategory::all();
+        return view('product.brunch.create', compact('subcategories'));
+    }
+
+    /**
+     * Guardar PRODUCTO NUEVO BRUNCH BOX
+     */
+    public function store(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            // Crear producto
+            $product = Product::create([
+                'subcategory_id' => $request->subcategory_id,
+                'type' => $request->type,                // bb3b1s o bb6b2s
+                'code' => $request->code,
+                'short_name' => $request->short_name,
+                'name' => $request->name,
+                'description' => $request->description,
+                'description_002' => $request->description_002,
+                'price' => $request->price,
+                'is_active' => $request->is_active ?? 0,
+                'qty_bagel' => $request->qty_bagel,
+                'qty_spreads' => $request->qty_spreads, // se guarda
+            ]);
+
+            // Guardar imágenes
+            if ($request->hasFile('images')) {
+                $order = 0;
+                foreach ($request->file('images') as $idx => $file) {
+                    $ext = $file->getClientOriginalExtension();
+                    $name = $request->code . '_' . date('Y_m_d_H_i_s') . '_' . $idx . '.' . $ext;
+
+                    $ruta_archivo = public_path('template/images/products/');
+                    $ruta = '/template/images/products/' . $name;
+
+                    // //Producción:
+                    // //$ruta_archivo = '/home3/baegelpe/public_html/imagenes/products/';
+                    // $webRootPath = config('app.web_root_path');
+                    // $web_link = config('app.web_link');
+                    // $ruta_archivo = $webRootPath.'/imagenes/products/';
+                    // $ruta = $web_link.'/imagenes/products/' . $name;
+
+                    $file->move($ruta_archivo, $name);
+
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'path' => $ruta,
+                        'type' => $order === 0 ? 'principal' : 'secundaria',
+                        'order' => $order
+                    ]);
+
+                    $order++;
+                }
+            }
+
+            DB::commit();
+            return response()->json(['success' => true]); // front redirige a edit
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function checkCode($code)
+    {
+        $exists = Product::where('code', $code)->exists();
+        return response()->json(['exists' => $exists]);
     }
 }

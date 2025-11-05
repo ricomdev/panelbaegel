@@ -254,6 +254,14 @@
                                 </a>
                             </li>
                         </ul>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{route('product.brunch.create')}}" class="nav-link">
+                                    <i class="fas fa-plus nav-icon"></i>
+                                    <p>Crear Brunch Box</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
 
                     <li class="nav-header">OTROS</li>
