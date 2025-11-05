@@ -1,21 +1,50 @@
 // ==========================
 // Configurar CSRF para Axios
 // ==========================
-axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+axios.defaults.headers.common['X-CSRF-TOKEN'] =
+    document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 // ==========================
-// Cargar datos del producto BOX-M
+// Variables globales
 // ==========================
-let pendingFiles = []; // 🔥 Acumula imágenes nuevas
+let pendingFiles = []; // Acumula imágenes nuevas
 
+// ==========================
+// Validar si el código ya existe (en tiempo real - SOLO CREATE)
+// ==========================
+const inputCode = document.getElementById("code");
+if (inputCode && !document.getElementById('code_product')) { // Solo en CREATE
+    inputCode.addEventListener("blur", async function () {
+        const code = this.value.trim();
+        if (!code) return;
+
+        try {
+            const res = await axios.get(`/product/boxm/check-code/${code}`);
+            if (res.data.exists) {
+                Swal.fire({
+                    icon: "warning",
+                    text: "El código ingresado ya está en uso. Por favor elige otro."
+                });
+                this.value = "";
+                this.focus();
+            }
+        } catch (error) {
+            console.error("Error al validar código:", error);
+        }
+    });
+}
+
+// ==========================
+// Cargar datos producto en EDITAR
+// ==========================
 if (document.getElementById('code_product')) {
-    function dataproduct() {
+    (function dataproduct() {
         const codigo = document.getElementById('code_product').value;
 
         axios.get("/dataproduct/boxm/" + codigo).then(response => {
             const data = response.data;
 
-            // ====== Campos básicos ======
+            // Campos
             document.getElementById("subcategory_id").value = data.subcategory_id || "";
             document.getElementById("type").value = data.type || "box3m";
             document.getElementById("code").value = data.code || "";
@@ -28,11 +57,11 @@ if (document.getElementById('code_product')) {
             document.getElementById("is_active").checked = data.is_active == 1;
             document.getElementById("qty_bagel").value = data.qty_bagel || 0;
 
-            // ====== Imágenes ======
+            // Imágenes
             const container = document.getElementById("sortable-images");
             container.innerHTML = "";
 
-            if (data.images && data.images.length > 0) {
+            if (data.images?.length > 0) {
                 data.images.forEach((img, index) => {
                     const col = document.createElement("div");
                     col.className = "col-sm-3 text-center mb-3 image-item";
@@ -49,8 +78,7 @@ if (document.getElementById('code_product')) {
                             <button type="button" class="btn btn-danger btn-sm mt-2 delete-image" data-id="${img.id}">
                                 <i class="fa fa-trash"></i> Eliminar
                             </button>
-                        </div>
-                    `;
+                        </div>`;
                     container.appendChild(col);
                 });
 
@@ -59,16 +87,14 @@ if (document.getElementById('code_product')) {
                 updateBadges();
             }
         });
-    }
-
-    dataproduct();
+    })();
 }
 
 // ==========================
 // Inicializar SortableJS
 // ==========================
 function initSortable() {
-    if (typeof Sortable !== "undefined") {
+    if (typeof Sortable !== "undefined" && document.getElementById("sortable-images")) {
         Sortable.create(document.getElementById("sortable-images"), {
             animation: 150,
             handle: 'img',
@@ -82,12 +108,11 @@ function initSortable() {
 // Actualizar etiquetas PRINCIPAL/SECUNDARIA
 // ==========================
 function updateBadges() {
-    const items = document.querySelectorAll("#sortable-images .image-item");
-    items.forEach((item, index) => {
+    document.querySelectorAll("#sortable-images .image-item").forEach((item, index) => {
         const badge = item.querySelector(".badge");
         if (badge) {
-            badge.className = "badge position-absolute";
-            badge.classList.add(index === 0 ? "badge-success" : "badge-secondary");
+            badge.className =
+                "badge position-absolute " + (index === 0 ? "badge-success" : "badge-secondary");
             badge.textContent = index === 0 ? "PRINCIPAL" : "SECUNDARIA";
             badge.style.top = "5px";
             badge.style.left = "5px";
@@ -96,166 +121,233 @@ function updateBadges() {
 }
 
 // ==========================
-// Eventos de eliminación
+// Eliminar imagen existente
 // ==========================
 function initDeleteEvents() {
     document.querySelectorAll(".delete-image").forEach(btn => {
-        btn.addEventListener("click", function (e) {
-            e.preventDefault();
-
-            const totalImages = document.querySelectorAll("#sortable-images .image-item").length;
-            if (totalImages <= 1) {
-                Swal.fire({
-                    icon: 'warning',
-                    text: 'Debe existir al menos una imagen. No puedes eliminar la última.'
-                });
-                return;
+        btn.addEventListener("click", function () {
+            const total = document.querySelectorAll("#sortable-images .image-item").length;
+            if (total <= 1) {
+                return Swal.fire({ icon: "warning", text: "Debe existir al menos una imagen." });
             }
 
-            const id = this.getAttribute("data-id");
+            const id = this.dataset.id;
             Swal.fire({
                 text: "¿Seguro que quieres eliminar esta imagen?",
                 icon: "warning",
                 showCancelButton: true,
-                confirmButtonText: "Sí, eliminar",
+                confirmButtonText: "Sí",
                 cancelButtonText: "Cancelar"
-            }).then(result => {
-                if (result.isConfirmed) {
-                    axios.delete(`/product/boxm/image/${id}`)
-                        .then(res => {
-                            if (res.data.success) {
-                                Swal.fire({ icon: "success", text: "Imagen eliminada" });
-                                dataproduct(); // 🔄 recargar lista
-                            }
-                        })
-                        .catch(err => {
-                            Swal.fire({ icon: "error", text: "Error al eliminar la imagen" });
-                            console.error(err);
-                        });
-                }
+            }).then(r => {
+                if (!r.isConfirmed) return;
+
+                axios.delete(`/product/boxm/image/${id}`)
+                    .then(res => {
+                        if (res.data.success) {
+                            Swal.fire({ icon: "success", text: "Imagen eliminada" });
+                            location.reload();
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire({ icon: "error", text: "Error al eliminar la imagen" });
+                        console.error(err);
+                    });
             });
         });
     });
 }
 
 // ==========================
-// Vista previa imágenes NUEVAS (acumulando todas)
+// Vista previa nuevas imágenes
 // ==========================
-document.getElementById("images").addEventListener("change", function (e) {
-    const container = document.getElementById("sortable-images");
-    const files = Array.from(e.target.files);
+const inputImages = document.getElementById("images");
+if (inputImages) {
+    inputImages.addEventListener("change", e => {
+        const container = document.getElementById("sortable-images");
 
-    files.forEach(file => {
-        pendingFiles.push(file);
+        Array.from(e.target.files).forEach(file => {
+            pendingFiles.push(file);
+            const reader = new FileReader();
 
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            const col = document.createElement("div");
-            col.className = "col-sm-3 text-center mb-3 image-item";
-            col.dataset.id = `new_${pendingFiles.length - 1}`;
+            reader.onload = ev => {
+                const col = document.createElement("div");
+                col.className = "col-sm-3 text-center mb-3 image-item";
+                col.dataset.id = `new_${pendingFiles.length - 1}`;
+                col.innerHTML = `
+                    <div class="card p-2">
+                        <div class="position-relative">
+                            <img src="${ev.target.result}" class="img-fluid img-thumbnail mb-2" style="max-height:150px;">
+                            <span class="badge badge-secondary position-absolute" style="top:5px; left:5px;">SECUNDARIA</span>
+                        </div>
+                    </div>`;
+                container.appendChild(col);
+            };
 
-            col.innerHTML = `
-                <div class="card p-2">
-                    <div class="position-relative">
-                        <img src="${event.target.result}" class="img-fluid img-thumbnail mb-2" style="max-height:150px;">
-                        <span class="badge badge-secondary position-absolute" style="top:5px; left:5px;">SECUNDARIA</span>
-                    </div>
-                </div>
-            `;
-            container.appendChild(col);
-        };
-        reader.readAsDataURL(file);
+            reader.readAsDataURL(file);
+        });
+
+        e.target.value = "";
+        setTimeout(updateBadges, 200);
     });
-
-    e.target.value = ""; // 🔥 permite seguir agregando más imágenes
-    setTimeout(updateBadges, 200);
-});
+}
 
 // ==========================
-// Guardar cambios
+// CREAR NUEVO PRODUCTO BOX-M
+// ==========================
+async function product_store(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById("btn-save");
+    const btnText = btn.querySelector(".btn-text");
+    const btnSpinner = btn.querySelector(".btn-spinner");
+
+    // Validaciones básicas
+    const subcategory = document.getElementById("subcategory_id").value.trim();
+    const code = document.getElementById("code").value.trim();
+    const name = document.getElementById("name").value.trim();
+    const shortName = document.getElementById("short_name").value.trim();
+    const price = document.getElementById("price").value.trim();
+    const qtyBagel = document.getElementById("qty_bagel").value.trim();
+    const totalImages = document.querySelectorAll('#sortable-images .image-item').length + pendingFiles.length;
+
+    if (!subcategory) return Swal.fire({ icon: "warning", text: "Seleccione una subcategoría" });
+    if (!code) return Swal.fire({ icon: "warning", text: "Ingrese un código" });
+    if (!shortName) return Swal.fire({ icon: "warning", text: "El campo 'Nombre Info' es obligatorio" });
+    if (!name) return Swal.fire({ icon: "warning", text: "Ingrese el nombre del producto" });
+    if (!qtyBagel || qtyBagel <= 0) return Swal.fire({ icon: "warning", text: "Ingrese la cantidad de bagels" });
+    if (!price || price <= 0) return Swal.fire({ icon: "warning", text: "Ingrese un precio válido" });
+    if (totalImages === 0) return Swal.fire({ icon: "warning", text: "Debe subir al menos una imagen" });
+
+    // Validar código con API
+    try {
+        const res = await axios.get(`/product/boxm/check-code/${code}`);
+        if (res.data.exists) {
+            return Swal.fire({
+                icon: "error",
+                text: "El código ingresado ya existe. Por favor elige otro."
+            });
+        }
+    } catch {
+        return Swal.fire({ icon: "error", text: "Error validando el código" });
+    }
+
+    Swal.fire({
+        text: "¿Desea crear este nuevo producto?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, crear",
+        cancelButtonText: "Cancelar"
+    }).then(result => {
+        if (!result.isConfirmed) return;
+
+        btn.disabled = true;
+        btnText.textContent = "Creando producto...";
+        btnSpinner.style.display = "inline-block";
+
+        const datos = new FormData();
+        datos.append("subcategory_id", subcategory);
+        datos.append("type", document.getElementById("type").value);
+        datos.append("code", code);
+        datos.append("short_name", shortName);
+        datos.append("name", name);
+        datos.append("description", document.getElementById("description").value);
+        datos.append("description_002", document.getElementById("description_002").value);
+        datos.append("price", price);
+        datos.append("is_active", document.getElementById("is_active").checked ? 1 : 0);
+        datos.append("qty_bagel", qtyBagel);
+        datos.append("qty_spreads", null);
+
+        pendingFiles.forEach(file => datos.append("images[]", file));
+
+        axios.post('/product/boxm/store', datos)
+            .then(res => {
+                if (res.data === 1 || res.data.success) {
+                    Swal.fire({ icon: "success", text: "Producto creado correctamente" })
+                        .then(() => location.href = `/product/boxm/edit/${code}`);
+                } else {
+                    Swal.fire({ icon: "error", text: res.data.message || "No se pudo crear el producto" });
+                }
+            })
+            .catch(err => {
+                Swal.fire({ icon: "error", text: "Error al crear el producto" });
+                console.error(err);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btnText.innerHTML = '<i class="fa fa-save mr-2"></i> Crear Producto Box Surtido';
+                btnSpinner.style.display = "none";
+            });
+    });
+}
+
+// ==========================
+// ACTUALIZAR PRODUCTO BOX-M
 // ==========================
 function product_update(e) {
     e.preventDefault();
 
-    // 🔍 Validar que exista al menos una imagen
     const existingImages = document.querySelectorAll('#sortable-images .image-item').length;
-    const newImages = pendingFiles.length;
-    if (existingImages + newImages === 0) {
-        Swal.fire({
-            icon: 'warning',
-            text: 'Debes subir al menos una imagen antes de actualizar el producto.'
-        });
-        return;
+    if (existingImages + pendingFiles.length === 0) {
+        return Swal.fire({ icon: "warning", text: "Debe subir al menos una imagen antes de actualizar." });
     }
 
     Swal.fire({
-        text: "Desea actualizar el registro?",
+        text: "¿Desea actualizar el registro?",
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: "Sí",
         cancelButtonText: "No"
     }).then(result => {
-        if (result.isConfirmed) {
-            // 🔥 Cambiar estado del botón
-            const btn = document.getElementById("btn-save");
-            const btnText = btn.querySelector(".btn-text");
-            const btnSpinner = btn.querySelector(".btn-spinner");
-            btn.disabled = true;
-            btnText.textContent = "Guardando cambios...";
-            btnSpinner.style.display = "inline-block";
+        if (!result.isConfirmed) return;
 
-            const codigo_antiguo = document.getElementById('code_product').value;
-            let datos = new FormData();
-            datos.append("codigo_antiguo", codigo_antiguo);
-            datos.append("subcategory_id", document.getElementById("subcategory_id").value);
-            datos.append("type", document.getElementById("type").value);
-            datos.append("code", document.getElementById("code").value);
-            datos.append("short_name", document.getElementById("short_name").value);
-            datos.append("name", document.getElementById("name").value);
-            datos.append("content", document.getElementById("content").value);
-            datos.append("description", document.getElementById("description").value);
-            datos.append("description_002", document.getElementById("description_002").value);
-            datos.append("price", document.getElementById("price").value);
-            datos.append("is_active", document.getElementById("is_active").checked ? 1 : 0);
-            datos.append("qty_bagel", document.getElementById("qty_bagel").value);
-            datos.append("qty_spreads", null);
+        const btn = document.getElementById("btn-save");
+        const btnText = btn.querySelector(".btn-text");
+        const btnSpinner = btn.querySelector(".btn-spinner");
+        btn.disabled = true;
+        btnText.textContent = "Guardando cambios...";
+        btnSpinner.style.display = "inline-block";
 
-            // 🔥 Orden de imágenes
-            document.querySelectorAll('#sortable-images .image-item').forEach((el, index) => {
-                datos.append(`order[${el.dataset.id}]`, index);
+        const codigo_antiguo = document.getElementById('code_product').value;
+        const datos = new FormData();
+
+        datos.append("codigo_antiguo", codigo_antiguo);
+        datos.append("subcategory_id", document.getElementById("subcategory_id").value);
+        datos.append("type", document.getElementById("type").value);
+        datos.append("code", document.getElementById("code").value);
+        datos.append("short_name", document.getElementById("short_name").value);
+        datos.append("name", document.getElementById("name").value);
+        datos.append("content", document.getElementById("content").value);
+        datos.append("description", document.getElementById("description").value);
+        datos.append("description_002", document.getElementById("description_002").value);
+        datos.append("price", document.getElementById("price").value);
+        datos.append("is_active", document.getElementById("is_active").checked ? 1 : 0);
+        datos.append("qty_bagel", document.getElementById("qty_bagel").value);
+        datos.append("qty_spreads", null);
+
+        document.querySelectorAll('#sortable-images .image-item').forEach((el, index) => {
+            datos.append(`order[${el.dataset.id}]`, index);
+        });
+
+        pendingFiles.forEach(file => datos.append("images[]", file));
+
+        axios.post('/updateproduct/boxm/' + codigo_antiguo, datos)
+            .then(res => {
+                if (res.data === 1) {
+                    Swal.fire({ icon: "success", text: "Datos actualizados correctamente" })
+                        .then(() => location.href = `/product/boxm/edit/${document.getElementById("code").value}`);
+                    pendingFiles = [];
+                } else {
+                    Swal.fire({ icon: "error", text: "No se realizó la actualización correctamente" });
+                }
+            })
+            .catch(err => {
+                Swal.fire({ icon: "error", text: "Error al actualizar el producto" });
+                console.error(err);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btnText.innerHTML = "Guardar Cambios";
+                btnSpinner.style.display = "none";
             });
-
-            // Nuevas imágenes
-            pendingFiles.forEach(file => {
-                datos.append("images[]", file);
-            });
-
-            axios.post('/updateproduct/boxm/' + codigo_antiguo, datos)
-                .then(response => {
-                    if (response.data === 1) {
-                        Swal.fire({
-                            text: "Los datos se actualizaron correctamente!",
-                            icon: "success"
-                        }).then(() => {
-                            location.href = "/product/boxm/edit/" + document.getElementById("code").value;
-                        });
-                        pendingFiles = [];
-                    } else {
-                        Swal.fire({ text: "No se realizó la actualización correctamente!", icon: "error" });
-                    }
-                    document.getElementById('code_product').value = document.getElementById("code").value;
-                    dataproduct();
-                })
-                .catch(error => {
-                    Swal.fire({ text: "Hubo un error al actualizar el producto", icon: "error" });
-                    console.error(error);
-                })
-                .finally(() => {
-                    // 🔄 Restaurar botón
-                    btn.disabled = false;
-                    btnText.innerHTML = "Guardar Cambios";
-                    btnSpinner.style.display = "none";
-                });
-        }
     });
 }

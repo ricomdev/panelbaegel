@@ -89,10 +89,13 @@ Route::middleware('auth')->group(function () {
     // RUTAS PRODUCTOS BOXM
     // =======================
     Route::get('/products/boxm', [ProductBoxMController::class, 'index'])->name('product.boxm.index');
+    Route::get('/product/boxm/create', [ProductBoxMController::class, 'create'])->name('product.boxm.create');
+    Route::post('/product/boxm/store', [ProductBoxMController::class, 'store'])->name('product.boxm.store');
     Route::get('/product/boxm/edit/{code}', [ProductBoxMController::class, 'show'])->name('product.boxm.show');
     Route::get('/dataproduct/boxm/{code}', [ProductBoxMController::class, 'dataproduct'])->name('product.boxm.dataproduct');
     Route::post('/updateproduct/boxm/{code}', [ProductBoxMController::class, 'update'])->name('product.boxm.update');
     Route::delete('/product/boxm/image/{id}', [ProductBoxMController::class, 'deleteImage']);
+    Route::get('/product/boxm/check-code/{code}', [ProductBoxMController::class, 'checkCode'])->name('product.boxm.checkcode');
 
     // =====================
     // RUTAS PRODUCT BRUNCH BOX
